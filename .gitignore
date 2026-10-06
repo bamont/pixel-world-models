@@ -9,9 +9,9 @@ __pycache__/
 build/
 dist/
 # experiment artefacts
-runs/
-data/
-outputs/
-multirun/
+/runs/
+/data/
+/outputs/
+/multirun/
 *.npz
 *.pt
