@@ -2,3 +2,4 @@
 name: point_reach
 size: 64
 max_steps: 50
+object_metrics: true

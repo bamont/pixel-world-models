@@ -3,3 +3,4 @@
 name: gym-CartPole-v1
 size: 64
 max_steps: 200
+object_metrics: false

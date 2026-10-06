@@ -30,6 +30,7 @@ class TrainConfig:
     eval_context: int = 5
     eval_horizons: tuple[int, ...] = (1, 5, 15, 45)
     eval_sequences: int = 64
+    eval_objects: bool = False
     seed: int = 0
 
 
@@ -69,6 +70,7 @@ class Trainer:
             context=cfg.eval_context,
             num_sequences=cfg.eval_sequences,
             seed=cfg.seed,
+            object_metrics=cfg.eval_objects,
         )
         return {f"val/{k}": v for k, v in results.items()}
 

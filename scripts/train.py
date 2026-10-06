@@ -21,7 +21,7 @@ from pixelwm.models import build_model
 from pixelwm.training import TrainConfig, Trainer
 from pixelwm.utils import get_device, seed_everything
 from pixelwm.utils.logging import get_logger
-from pixelwm.utils.viz import comparison_frames, save_gif
+from pixelwm.utils.viz import save_dream_gif
 
 VAL_SEED_OFFSET = 1_000_000
 
@@ -63,15 +63,25 @@ def main(cfg: DictConfig) -> None:
     trainer = Trainer(
         model,
         train_buffer,
-        TrainConfig(**train_cfg, seed=cfg.seed),
+        TrainConfig(
+            **train_cfg,
+            seed=cfg.seed,
+            eval_objects=bool(cfg.env.get("object_metrics", False)),
+        ),
         out_dir,
         val_buffer=val_buffer,
         extra={"env": OmegaConf.to_container(cfg.env, resolve=True)},
     )
     trainer.fit()
-
-    real, dream = dream_episode(model, val_buffer.episodes[0], context=cfg.training.eval_context)
-    save_gif(comparison_frames(real, dream), out_dir / "dream.gif")
+    
+    ctx = cfg.training.eval_context
+    episode = val_buffer.episodes[0]
+    real, dream = dream_episode(model, episode, context=ctx)
+    save_dream_gif(
+        real, dream, out_dir / "dream.gif",
+        last_context=episode.obs[ctx - 1],
+        trails=bool(cfg.env.get("object_metrics", False)),
+    )
     logger.info("Done. Outputs written to %s", out_dir)
 
 
