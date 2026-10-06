@@ -1,0 +1,29 @@
+defaults:
+  - env: point_reach
+  - model: rssm
+  - _self_
+
+seed: 0
+device: auto
+
+data:
+  cache_dir: data
+  train_episodes: 200
+  val_episodes: 20
+
+training:
+  steps: 20000
+  batch_size: 16
+  seq_len: 32
+  lr: 3.0e-4
+  grad_clip: 100.0
+  log_every: 100
+  eval_every: 1000
+  save_every: 5000
+  eval_context: 5
+  eval_horizons: [1, 5, 15, 45]
+  eval_sequences: 64
+
+hydra:
+  run:
+    dir: runs/${model.name}_${env.name}_s${seed}

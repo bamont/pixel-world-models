@@ -1,0 +1,5 @@
+# Any Gymnasium environment with an "rgb_array" render mode can be used with the
+# "gym-" prefix. Requires `pip install -e ".[envs]"`.
+name: gym-CartPole-v1
+size: 64
+max_steps: 200

@@ -1,0 +1,4 @@
+# Built-in lightweight pixel environment: move a red dot onto a green square.
+name: point_reach
+size: 64
+max_steps: 50
