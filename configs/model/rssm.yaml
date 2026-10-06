@@ -9,3 +9,4 @@ free_bits: 1.0
 beta_dyn: 0.5
 beta_rep: 0.1
 reward_scale: 1.0
+fg_weight: 0.0
