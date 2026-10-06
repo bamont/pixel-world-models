@@ -35,3 +35,11 @@ def test_save_load_roundtrip(small_buffer, tmp_path):
     loaded = EpisodeBuffer.load(path)
     assert loaded.num_episodes == small_buffer.num_episodes
     assert np.array_equal(loaded.episodes[2].obs, small_buffer.episodes[2].obs)
+
+
+def test_load_decompresses_arrays_once(small_buffer, tmp_path):
+    path = tmp_path / "data.npz"
+    small_buffer.save(path)
+    loaded = EpisodeBuffer.load(path)
+    # All episodes must be views of one shared array, not one full copy each.
+    assert loaded.episodes[0].obs.base is loaded.episodes[1].obs.base

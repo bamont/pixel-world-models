@@ -115,13 +115,18 @@ class EpisodeBuffer:
     def load(cls, path: str | Path, capacity: int = 1_000_000) -> EpisodeBuffer:
         buffer = cls(capacity=capacity)
         with np.load(path) as data:
-            bounds = np.concatenate([[0], np.cumsum(data["lengths"])])
-            for start, end in zip(bounds[:-1], bounds[1:], strict=True):
-                buffer.add(
-                    Episode(
-                        obs=data["obs"][start:end],
-                        prev_actions=data["prev_actions"][start:end],
-                        rewards=data["rewards"][start:end],
-                    )
+            # NpzFile decompresses on every access: read each array exactly once.
+            obs = data["obs"]
+            prev_actions = data["prev_actions"]
+            rewards = data["rewards"]
+            lengths = data["lengths"]
+        bounds = np.concatenate([[0], np.cumsum(lengths)])
+        for start, end in zip(bounds[:-1], bounds[1:], strict=True):
+            buffer.add(
+                Episode(
+                    obs=obs[start:end],
+                    prev_actions=prev_actions[start:end],
+                    rewards=rewards[start:end],
                 )
+            )
         return buffer
