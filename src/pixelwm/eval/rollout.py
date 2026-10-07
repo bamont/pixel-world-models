@@ -10,12 +10,28 @@ import torch
 from pixelwm.data.buffer import Episode, EpisodeBuffer
 from pixelwm.eval.metrics import mse, psnr, ssim
 from pixelwm.eval.objects import OBJECT_NAMES, localization_error, object_centroids
-from pixelwm.models.base import WorldModel, index_state
+from pixelwm.models.base import State, WorldModel, index_state
 
 
 def _to_hwc(images: torch.Tensor) -> np.ndarray:
     """``(N, 3, H, W)`` tensor -> ``(N, H, W, 3)`` NumPy array."""
     return images.permute(0, 2, 3, 1).detach().cpu().numpy()
+
+
+@torch.no_grad()
+def _imagine(
+    model: WorldModel,
+    obs: torch.Tensor,
+    prev_actions: torch.Tensor,
+    context: int,
+) -> State:
+    """Observe ``context`` frames, then imagine the rest using the ground-truth actions.
+
+    Returns the imagined states, each entry shaped ``(B, L - context, ...)``.
+    """
+    posterior, _ = model.observe(obs[:, :context], prev_actions[:, :context])
+    start = index_state(posterior, context - 1)
+    return model.imagine(start, prev_actions[:, context:])
 
 
 @torch.no_grad()
@@ -25,14 +41,8 @@ def _dream(
     prev_actions: torch.Tensor,
     context: int,
 ) -> torch.Tensor:
-    """Observe ``context`` frames, then imagine the rest using the ground-truth actions.
-
-    Returns the decoded imagined frames ``(B, L - context, 3, H, W)`` in [0, 1].
-    """
-    posterior, _ = model.observe(obs[:, :context], prev_actions[:, :context])
-    start = index_state(posterior, context - 1)
-    imagined = model.imagine(start, prev_actions[:, context:])
-    return model.decode(imagined)
+    """Like :func:`_imagine`, but returns the decoded frames ``(B, L - context, 3, H, W)``."""
+    return model.decode(_imagine(model, obs, prev_actions, context))
 
 
 @torch.no_grad()
@@ -50,6 +60,10 @@ def open_loop_eval(
     For each horizon ``h``, reports ``psnr@h``, ``ssim@h`` and ``mse@h`` between the image
     imagined ``h`` steps after the context and the real one, plus two trivial baselines:
     ``psnr_copy@h`` (repeat the last context frame) and ``psnr_bg@h`` (empty background).
+
+    The reward head is evaluated too: ``reward_mae@h`` is the mean absolute error of the
+    predicted reward at step ``h`` and ``reward_mae_copy@h`` the error of simply repeating the
+    last observed reward. Planning relies on this head, so it should beat the baseline.
 
     With ``object_metrics=True`` (``point_reach``-like images only), also reports for each
     object in ``agent`` / ``goal``:
@@ -69,9 +83,14 @@ def open_loop_eval(
     batch = buffer.sample(num_sequences, context + max_h, rng)
     obs = batch["obs"].to(model.device)
     prev_actions = batch["prev_actions"].to(model.device)
+    rewards = batch["rewards"].to(model.device)
 
-    pred = _dream(model, obs, prev_actions, context)
+    states = _imagine(model, obs, prev_actions, context)
+    pred = model.decode(states)
+    pred_rewards = model.predict_reward(states)  # (B, max_h)
     target = obs[:, context:].float() / 255.0
+    true_rewards = rewards[:, context:]
+    last_reward = rewards[:, context - 1]
 
     # Trivial baselines that any useful model must beat.
     last_context = obs[:, context - 1].float() / 255.0
@@ -87,6 +106,9 @@ def open_loop_eval(
         results[f"mse@{h}"] = mse(p, t).mean().item()
         results[f"psnr_copy@{h}"] = psnr(last_context, t).mean().item()
         results[f"psnr_bg@{h}"] = psnr(background.expand_as(t), t).mean().item()
+        reward_h = true_rewards[:, h - 1]
+        results[f"reward_mae@{h}"] = (pred_rewards[:, h - 1] - reward_h).abs().mean().item()
+        results[f"reward_mae_copy@{h}"] = (last_reward - reward_h).abs().mean().item()
         if object_metrics:
             real_c = object_centroids(_to_hwc(t))
             pred_c = object_centroids(_to_hwc(p))

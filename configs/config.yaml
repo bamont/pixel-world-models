@@ -8,22 +8,22 @@ device: auto
 
 data:
   cache_dir: data
-  train_episodes: 200
-  val_episodes: 20
+  train_episodes: 1000  # with 200 episodes the model overfits (3-4 dB train/fresh PSNR gap)
+  val_episodes: 100
 
 training:
-  steps: 20000
+  steps: 20000          # validation curves were still rising at 10k steps
   batch_size: 16
   seq_len: 32
   lr: 3.0e-4
   grad_clip: 100.0
   log_every: 100
-  eval_every: 1000
-  save_every: 5000
+  eval_every: 500
+  save_every: 1000
   eval_context: 5
   eval_horizons: [1, 5, 15, 45]
-  eval_sequences: 64
+  eval_sequences: 256   # 64 sequences gave multi-dB swings between evaluation sets
 
 hydra:
   run:
-    dir: runs/${model.name}_${env.name}_s${seed}
+    dir: runs/${model.name}_fg${model.fg_weight}_${env.name}_${data.train_episodes}ep_s${seed}

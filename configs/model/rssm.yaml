@@ -9,4 +9,7 @@ free_bits: 1.0
 beta_dyn: 0.5
 beta_rep: 0.1
 reward_scale: 1.0
-fg_weight: 0.0
+# Extra weight on pixels that differ from the background. Without it the small red agent is never
+# learned (0% detected); 5 gave the best pixel quality over 3 seeds, 20 learns the agent faster
+# (~1.5k vs ~4.5k steps) with slightly lower position error.
+fg_weight: 5.0
