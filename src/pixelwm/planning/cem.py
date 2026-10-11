@@ -25,6 +25,10 @@ from pixelwm.models.base import State, WorldModel, index_state
 class CEMPlanner:
     """Receding-horizon CEM planner over a learned latent world model.
 
+    The defaults (horizon 6, 1024 samples, 128 elites) were the best of a small grid on
+    ``point_reach``: shorter plans and more samples both improved the real return, and the number
+    of samples is almost free on a GPU since sequences are evaluated in parallel.
+
     Args:
         model: any world model with a reward head.
         horizon: number of imagined steps per plan.
@@ -41,9 +45,9 @@ class CEMPlanner:
     def __init__(
         self,
         model: WorldModel,
-        horizon: int = 12,
-        num_samples: int = 256,
-        num_elites: int = 32,
+        horizon: int = 6,
+        num_samples: int = 1024,
+        num_elites: int = 128,
         iterations: int = 4,
         init_std: float = 0.5,
         min_std: float = 0.05,

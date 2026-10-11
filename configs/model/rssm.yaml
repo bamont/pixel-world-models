@@ -10,6 +10,7 @@ beta_dyn: 0.5
 beta_rep: 0.1
 reward_scale: 1.0
 # Extra weight on pixels that differ from the background. Without it the small red agent is never
-# learned (0% detected); 5 gave the best pixel quality over 3 seeds, 20 learns the agent faster
-# (~1.5k vs ~4.5k steps) with slightly lower position error.
-fg_weight: 5.0
+# learned (0% detected, planning no better than random). 5 gave the best PSNR, but 20 learns the
+# agent faster (~1.5k vs ~4.5k steps), has lower position error and gave the best and most
+# consistent real return with the CEM planner (3 seeds, 100 episodes each).
+fg_weight: 20.0
