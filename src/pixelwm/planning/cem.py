@@ -40,6 +40,8 @@ class CEMPlanner:
         discount: discount applied to predicted rewards along the horizon.
         action_low, action_high: action bounds.
         warm_start: reuse the previous plan (shifted by one step) as the initial mean.
+        amp: evaluate the imagined rollouts in float16 autocast (CUDA only); can speed up
+            transformer world models, unnecessary for small recurrent ones.
     """
 
     def __init__(
@@ -55,6 +57,7 @@ class CEMPlanner:
         action_low: float = -1.0,
         action_high: float = 1.0,
         warm_start: bool = True,
+        amp: bool = False,
     ) -> None:
         if not 2 <= num_elites <= num_samples:
             raise ValueError("num_elites must satisfy 2 <= num_elites <= num_samples.")
@@ -68,6 +71,7 @@ class CEMPlanner:
         self.action_low = action_low
         self.action_high = action_high
         self.warm_start = warm_start
+        self.amp = amp and model.device.type == "cuda"
         steps = torch.arange(horizon, dtype=torch.float32, device=model.device)
         self.discounts = discount**steps
         self.state: State | None = None
@@ -117,6 +121,8 @@ class CEMPlanner:
 
     def score(self, start: State, actions: torch.Tensor) -> torch.Tensor:
         """Predicted discounted return of each action sequence ``(N, H, A)`` -> ``(N,)``."""
-        states = self.model.imagine(start, actions)
-        rewards = self.model.predict_reward(states)  # (N, H)
-        return (rewards * self.discounts).sum(dim=1)
+        device_type = self.model.device.type
+        with torch.autocast(device_type=device_type, dtype=torch.float16, enabled=self.amp):
+            states = self.model.imagine(start, actions)
+            rewards = self.model.predict_reward(states)  # (N, H)
+        return (rewards.float() * self.discounts).sum(dim=1)

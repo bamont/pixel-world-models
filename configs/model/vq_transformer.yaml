@@ -1,0 +1,21 @@
+name: vq_transformer
+num_codes: 512
+code_dim: 64
+cnn_depth: 32
+window: 3
+d_model: 128
+n_layers: 4
+n_heads: 4
+dropout: 0.0
+beta_commit: 0.25
+# Same role as in the RSSM: without extra weight on foreground pixels the tokenizer
+# reconstructs the empty background and ignores the small agent.
+fg_weight: 20.0
+tokenizer_steps: 5000   # the tokenizer is frozen after this many training steps
+tokenizer_batch: 128
+window_batch: 256
+pad_prob: 0.25
+reward_scale: 1.0
+temperature: 1.0        # inference sampling temperature (0 = greedy); can be overridden at eval time
+ema_decay: 0.99
+restart_every: 50

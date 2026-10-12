@@ -28,6 +28,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--context", type=int, default=5)
     parser.add_argument("--horizons", type=int, nargs="+", default=[1, 5, 15, 45])
     parser.add_argument("--seed", type=int, default=123)
+    parser.add_argument(
+        "--temperature", type=float, default=None,
+        help="Override the sampling temperature of token models (0 = greedy).",
+    )
     parser.add_argument("--device", default="auto")
     parser.add_argument(
         "--objects",
@@ -45,6 +49,8 @@ def main() -> None:
     seed_everything(args.seed)
     device = get_device(args.device)
     model, ckpt = load_checkpoint(args.checkpoint, device)
+    if args.temperature is not None and hasattr(model, "temperature"):
+        model.temperature = args.temperature
     env_cfg = ckpt["extra"]["env"]
     objects = args.objects if args.objects is not None else bool(env_cfg.get("object_metrics"))
     out_dir = args.out or args.checkpoint.parent.parent / "eval"

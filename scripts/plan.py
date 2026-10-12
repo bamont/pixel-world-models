@@ -35,6 +35,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--init-std", type=float, default=0.5)
     parser.add_argument("--discount", type=float, default=0.99)
     parser.add_argument("--no-warm-start", action="store_true")
+    parser.add_argument("--amp", action="store_true", help="float16 autocast (CUDA).")
+    parser.add_argument(
+        "--temperature", type=float, default=None,
+        help="Override the sampling temperature of token models (0 = greedy).",
+    )
     parser.add_argument("--no-baselines", action="store_true", help="Skip random / oracle runs.")
     parser.add_argument("--gif", action="store_true", help="Save the first controlled episode.")
     parser.add_argument("--device", default="auto")
@@ -51,6 +56,8 @@ def main() -> None:
     seed_everything(args.seed)
     device = get_device(args.device)
     model, ckpt = load_checkpoint(args.checkpoint, device)
+    if args.temperature is not None and hasattr(model, "temperature"):
+        model.temperature = args.temperature
     env_cfg = ckpt["extra"]["env"]
     out_dir = args.out or args.checkpoint.parent.parent / "planning"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -65,6 +72,7 @@ def main() -> None:
         init_std=args.init_std,
         discount=args.discount,
         warm_start=not args.no_warm_start,
+        amp=args.amp,
     )
     results: dict[str, Any] = {}
     cem = evaluate_policy(env, planner, args.episodes, args.seed, record_first=args.gif)

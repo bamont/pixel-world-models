@@ -7,11 +7,15 @@ from typing import Any
 
 from pixelwm.models.base import State, WorldModel
 from pixelwm.models.rssm import RSSM, RSSMConfig
+from pixelwm.models.vq_transformer import VQTransformer, VQTransformerConfig
 
 ModelBuilder = Callable[[int, Mapping[str, Any]], WorldModel]
 
 MODEL_REGISTRY: dict[str, ModelBuilder] = {
     "rssm": lambda action_dim, cfg: RSSM(action_dim, RSSMConfig(**cfg)),
+    "vq_transformer": lambda action_dim, cfg: VQTransformer(
+        action_dim, VQTransformerConfig(**cfg)
+    ),
 }
 
 
@@ -22,4 +26,13 @@ def build_model(name: str, action_dim: int, config: Mapping[str, Any] | None = N
     return MODEL_REGISTRY[name](action_dim, config or {})
 
 
-__all__ = ["MODEL_REGISTRY", "RSSM", "RSSMConfig", "State", "WorldModel", "build_model"]
+__all__ = [
+    "MODEL_REGISTRY",
+    "RSSM",
+    "RSSMConfig",
+    "State",
+    "VQTransformer",
+    "VQTransformerConfig",
+    "WorldModel",
+    "build_model",
+]
